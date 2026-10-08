@@ -1,0 +1,1018 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Graph Shifter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap">
+<style>
+/* Layout: graph-paper workbench. Plot on the left, instrument panel on the right; stacks on phones. */
+:root{
+  --paper:#E9F0EC; --sheet:#F8FBF9; --grid:#D3E0DA; --grid-major:#ADC3B9;
+  --ink:#16212E; --ink-soft:#4C5D69; --line:#D2DED8;
+  --pen:#2648D4; --pen-soft:#E1E7FB; --hi:#F1AE34; --hi-soft:#FCEBC6;
+  --on-pen:#FFFFFF; --orig:#8597A2; --good:#18875A; --good-soft:#DAF1E6; --bad:#C9433A; --bad-soft:#F8E0DD;
+  --font-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --font-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-math:"STIX Two Text", "Cambria Math", "Times New Roman", serif;
+  --font-num:"JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#0D141A; --sheet:#141E26; --grid:#1B2832; --grid-major:#2B3D49;
+  --ink:#E3ECEF; --ink-soft:#9AACB6; --line:#26353F;
+  --pen:#83A0FF; --pen-soft:#1E2A4D; --hi:#F4BC50; --hi-soft:#3A2F17;
+  --on-pen:#0D141A; --orig:#6A7D89; --good:#4DC48C; --good-soft:#143326; --bad:#F07B6F; --bad-soft:#3A1C1A;
+  color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --paper:#0D141A; --sheet:#141E26; --grid:#1B2832; --grid-major:#2B3D49;
+  --ink:#E3ECEF; --ink-soft:#9AACB6; --line:#26353F;
+  --pen:#83A0FF; --pen-soft:#1E2A4D; --hi:#F4BC50; --hi-soft:#3A2F17;
+  --on-pen:#0D141A; --orig:#6A7D89; --good:#4DC48C; --good-soft:#143326; --bad:#F07B6F; --bad-soft:#3A1C1A;
+  color-scheme:dark; }
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:14px 40px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--pen);outline-offset:2px}
+.m{font-family:var(--font-math);font-size:1.12em;white-space:nowrap}
+.m i{font-style:italic}
+.m sup{font-size:.7em;line-height:0}
+.m sub{font-size:.7em;line-height:0}
+.fr{display:inline-flex;align-items:baseline}
+.m .fr sup,.m .fr sub,.fr sup,.fr sub{font-size:.75em}
+.fr sup{vertical-align:.45em}.fr sub{vertical-align:-.15em}
+
+/* header */
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;justify-content:space-between;margin-bottom:14px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:42px;height:42px;flex:none}
+.brand h1{font-family:var(--font-display);font-weight:800;font-size:26px;letter-spacing:-.02em;margin:0;line-height:1}
+.brand p{margin:3px 0 0;font-size:13px;color:var(--ink-soft)}
+nav.tabs{display:flex;gap:4px;background:var(--sheet);border:1px solid var(--line);border-radius:999px;padding:4px}
+nav.tabs button{border:0;background:transparent;padding:7px 16px;border-radius:999px;font-weight:700;font-size:14px;color:var(--ink-soft)}
+nav.tabs button[aria-selected="true"]{background:var(--ink);color:var(--sheet)}
+
+/* level strip */
+.strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:12px;scrollbar-width:thin}
+.strip button{flex:none;min-width:52px;border:1px solid var(--line);background:var(--sheet);border-radius:8px;padding:5px 8px 4px;display:flex;flex-direction:column;align-items:center;gap:1px}
+.strip button .n{font-family:var(--font-num);font-weight:700;font-size:14px}
+.strip button .s{font-size:10px;letter-spacing:1px;color:var(--hi);min-height:13px}
+.strip button .t{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}
+.strip button[aria-current="true"]{border-color:var(--pen);box-shadow:inset 0 0 0 1px var(--pen);background:var(--pen-soft)}
+
+/* board */
+.board{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:880px){.board{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:880px) and (min-height:640px){.stage{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;box-shadow:0 10px 24px -18px rgba(0,0,0,.4)}}
+@media (max-width:600px){
+  #plot .lbl{font-size:21px} #plot .kpl{font-size:22px;stroke-width:6px}
+  #plot .c-cur{stroke-width:5} #plot .c-target{stroke-width:20} #plot .c-orig{stroke-width:3}
+  #plot .kp,#plot .kp-t{r:9px}
+  .stage{padding:10px} .stage-head h2{font-size:19px}
+}
+.stage{background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);padding:14px;min-width:0}
+.stage-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.stage-head .no{font-family:var(--font-num);font-size:12px;color:var(--ink-soft);letter-spacing:.06em;text-transform:uppercase}
+.stage-head h2{font-family:var(--font-display);font-weight:800;font-size:22px;margin:0;letter-spacing:-.01em}
+.badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:999px}
+.badge.encode{background:var(--hi-soft);color:var(--ink)}
+.badge.decode{background:var(--pen-soft);color:var(--pen)}
+svg.plot{width:100%;height:auto;display:block;touch-action:manipulation}
+.plot .gl{stroke:var(--grid);stroke-width:1}
+.plot .gl.maj{stroke:var(--grid-major)}
+.plot .ax{stroke:var(--ink);stroke-width:1.4}
+.plot .lbl{fill:var(--ink-soft);font-family:var(--font-num);font-size:12px}
+.plot .c-orig{fill:none;stroke:var(--orig);stroke-width:2;stroke-dasharray:6 6}
+.plot .c-target{fill:none;stroke:var(--hi);stroke-width:13;stroke-opacity:.55;stroke-linecap:round;stroke-linejoin:round}
+.plot .c-cur{fill:none;stroke:var(--pen);stroke-width:3.2;stroke-linejoin:round}
+.plot .c-g{fill:none;stroke:var(--pen);stroke-width:2.6}
+.plot .kp{fill:var(--pen);stroke:var(--sheet);stroke-width:2}
+.plot .kp-t{fill:var(--hi);stroke:var(--sheet);stroke-width:2}
+.plot .kp-o{fill:var(--orig)}
+.plot .kpl{fill:var(--pen);font-family:var(--font-num);font-size:13px;font-weight:700;paint-order:stroke;stroke:var(--sheet);stroke-width:4px}
+.plot.win .c-cur{stroke:var(--good)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-soft);margin-top:6px}
+.legend > span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:22px;height:0;border-top:3px solid var(--pen)}
+.sw.o{border-top:2px dashed var(--orig)}
+.sw.t{border-top:9px solid var(--hi);opacity:.6;border-radius:4px}
+
+.panel{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);padding:14px;min-width:0}
+.kicker{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 6px}
+.mission p{margin:0 0 8px}
+.target-eq{font-size:22px;padding:8px 12px;border-radius:8px;background:var(--hi-soft);display:inline-block;max-width:100%;overflow-x:auto}
+.target-eq.dec{background:var(--pen-soft)}
+.eq-now{font-size:21px;overflow-x:auto;padding-bottom:2px}
+.chain{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;margin-top:8px;font-size:14px;color:var(--ink-soft)}
+.chain .m{font-size:1.02em}
+.chain .arr{color:var(--orig)}
+.mv-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mv-list span{font-size:12px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:2px 9px}
+.moves{display:flex;flex-direction:column;gap:12px}
+.grp h3{font-family:var(--font-display);font-weight:600;font-size:14px;margin:0 0 6px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.grp h3 small{font-family:var(--font-body);font-weight:400;font-size:12px;color:var(--ink-soft)}
+.btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.btns.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:460px){.btns.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mbtn{border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:58px;transition:transform .08s, background .15s}
+.mbtn:hover{background:var(--pen-soft);border-color:var(--pen)}
+.mbtn:active{transform:scale(.97)}
+.mbtn .ic{font-size:18px;line-height:1;font-weight:700}
+.mbtn .nm{font-size:12.5px;font-weight:700}
+.mbtn .al{font-size:13px;color:var(--pen)}
+.picker{display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft)}
+.chip{border:1px solid var(--line);background:var(--sheet);border-radius:999px;padding:3px 11px;font-family:var(--font-num);font-size:13px;font-weight:700}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--sheet);border-radius:8px;padding:8px 14px;font-weight:700;font-size:14px}
+.btn.primary{background:var(--pen);border-color:var(--pen);color:var(--on-pen)}
+.btn:disabled{opacity:.45;cursor:default}
+.meter{margin-left:auto;font-family:var(--font-num);font-size:13px;color:var(--ink-soft)}
+.fb{border-radius:8px;padding:10px 12px;font-size:14px}
+.fb.bad{background:var(--bad-soft);border:1px solid var(--bad)}
+.fb.good{background:var(--good-soft);border:1px solid var(--good)}
+.fb p{margin:0 0 6px}.fb p:last-child{margin:0}
+
+/* sheet overlay */
+.sheet{position:fixed;inset:0;background:color-mix(in srgb,var(--paper) 70%,transparent);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.sheet .card{width:min(520px,100%);max-height:calc(100% - 20px);overflow:auto;box-shadow:0 18px 50px -20px rgba(0,0,0,.35);padding:20px}
+.sheet h2{font-family:var(--font-display);font-weight:800;font-size:24px;margin:0 0 6px}
+.opts{display:grid;gap:8px;margin-top:12px}
+.opt{text-align:left;border:1.5px solid var(--line);background:var(--paper);border-radius:9px;padding:10px 14px;display:flex;gap:12px;align-items:center;min-width:0}
+.opt:hover:not(:disabled){border-color:var(--pen)}
+.opt .k{font-family:var(--font-num);font-size:12px;color:var(--ink-soft);border:1px solid var(--line);border-radius:5px;padding:0 6px;flex:none}
+.opt .m{font-size:19px}
+.opt.right{border-color:var(--good);background:var(--good-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt:disabled{cursor:default}
+.stars{font-size:34px;letter-spacing:6px;color:var(--hi);margin:4px 0 6px}
+.stars .off{color:var(--line)}
+
+/* rapid fire */
+.rf{max-width:760px;margin:0 auto}
+.rf-hero{display:grid;gap:14px}
+.rf-hero h2{font-family:var(--font-display);font-weight:800;font-size:30px;margin:0;letter-spacing:-.02em;text-wrap:balance}
+.rf-hero ul{margin:0;padding-left:20px}
+.hud{display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+.hud .score{font-family:var(--font-num);font-weight:700;font-size:24px}
+.hud .streak{font-family:var(--font-num);font-size:13px;padding:3px 9px;border-radius:999px;background:var(--hi-soft)}
+.hud .time{margin-left:auto;font-family:var(--font-num);font-weight:700;font-size:18px}
+.timebar{height:6px;background:var(--line);border-radius:999px;overflow:hidden;margin-bottom:12px}
+.timebar div{height:100%;background:var(--pen);transition:width .2s linear}
+.q-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
+.q-tag.ws{color:var(--ink);background:var(--hi-soft);padding:2px 8px;border-radius:999px}
+.q-prompt{font-size:16.5px;margin:0 0 10px}
+.fg{display:grid;gap:4px;margin:6px 0 4px;font-size:18px}
+.tblwrap{overflow-x:auto;margin:8px 0}
+table.ft{border-collapse:collapse;font-family:var(--font-num);font-size:14px}
+table.ft th,table.ft td{border:1px solid var(--line);padding:5px 11px;text-align:center;font-variant-numeric:tabular-nums}
+table.ft th{font-family:var(--font-math);font-style:italic;font-weight:600;font-size:15px;background:var(--paper)}
+.explain{margin-top:12px}
+.explain .mini{max-width:340px;margin-top:8px}
+.end-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.bar{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:4px}
+.bar div{height:100%;background:var(--good)}
+.cat{font-size:13px}
+.cat b{font-family:var(--font-num)}
+
+/* rules */
+.rules h2{font-family:var(--font-display);font-weight:800;font-size:28px;margin:4px 0 4px;letter-spacing:-.02em}
+.rules > p{max-width:65ch;margin:0 0 16px;color:var(--ink-soft)}
+.traps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-bottom:22px}
+.trap{background:var(--hi-soft);border-radius:var(--r);padding:12px 14px;font-size:14px}
+.trap b{display:block;font-family:var(--font-display);font-size:16px;margin-bottom:2px}
+.rgroup h3{font-family:var(--font-display);font-weight:800;font-size:19px;margin:18px 0 8px}
+.rcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.rcard{background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.rcard .rt{font-weight:700;font-size:14px}
+.rcard .rform{font-size:19px;margin:2px 0 4px}
+.rcard svg{width:100%;height:auto;display:block;margin-top:4px}
+.rcard .rn{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 42 42" aria-hidden="true">
+        <rect x="1" y="1" width="40" height="40" rx="9" fill="var(--ink)"/>
+        <path d="M7 31 C 13 31, 13 11, 19 11" fill="none" stroke="var(--orig)" stroke-width="2.5" stroke-dasharray="3 3"/>
+        <path d="M17 31 C 23 31, 23 11, 29 11" fill="none" stroke="var(--hi)" stroke-width="6" stroke-opacity=".6" stroke-linecap="round"/>
+        <path d="M17 31 C 23 31, 23 11, 29 11" fill="none" stroke="var(--pen-soft)" stroke-width="2.5"/>
+        <path d="M27 24 l5 -3 l-5 -3" fill="none" stroke="var(--sheet)" stroke-width="2"/>
+      </svg>
+      <div><h1>Graph Shifter</h1><p>Transformations of functions · translate, reflect, stretch, compress</p></div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" id="tab-levels" aria-selected="true" data-tab="levels">Levels</button>
+      <button role="tab" id="tab-rapid" aria-selected="false" data-tab="rapid">Rapid Fire</button>
+      <button role="tab" id="tab-rules" aria-selected="false" data-tab="rules">Rulebook</button>
+    </nav>
+  </header>
+
+  <!-- LEVELS -->
+  <section id="view-levels">
+    <div class="strip" id="strip" aria-label="Levels"></div>
+    <div class="board">
+      <div class="stage">
+        <div class="stage-head"><span class="no" id="lv-no"></span><h2 id="lv-title"></h2><span class="badge" id="lv-badge"></span></div>
+        <svg class="plot" id="plot" role="img" aria-label="Graph"></svg>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="panel">
+        <div class="card mission" id="mission"></div>
+        <div class="card" id="eqcard"></div>
+        <div class="card moves" id="moves"></div>
+        <div class="card" id="actcard">
+          <div class="actions">
+            <button class="btn" id="undo">Undo</button>
+            <button class="btn" id="reset">Reset</button>
+            <button class="btn primary" id="check" hidden>Check</button>
+            <span class="meter" id="meter"></span>
+          </div>
+          <div id="fb" style="margin-top:10px" hidden></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RAPID FIRE -->
+  <section id="view-rapid" hidden>
+    <div class="rf" id="rf"></div>
+  </section>
+
+  <!-- RULEBOOK -->
+  <section id="view-rules" class="rules" hidden></section>
+</div>
+
+<div class="sheet" id="sheet" hidden><div class="card" id="sheet-card" role="dialog" aria-modal="true"></div></div>
+
+<script>
+(() => {
+"use strict";
+const DEG = Math.PI/180;
+const X = '<i>x</i>';
+const EPS = 1e-9;
+const near = (a,b)=>Math.abs(a-b)<1e-7;
+const near0 = a=>Math.abs(a)<1e-7;
+const isInt = v=>near(v,Math.round(v));
+const pick = arr=>arr[Math.floor(Math.random()*arr.length)];
+const shuffle = arr=>{const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const $ = id=>document.getElementById(id);
+const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- numbers & expressions ---------- */
+function toFrac(v){
+  if (isInt(v)) return [Math.round(v),1];
+  for (let q=2;q<=64;q++){ const p=Math.round(v*q); if (Math.abs(p/q-v)<1e-7) return [p,q]; }
+  return [v,1];
+}
+function numHTML(v){
+  const [p,q]=toFrac(v); const s=p<0?'−':'';
+  if (q===1) return s+(isInt(p)?Math.abs(Math.round(p)):Math.abs(p).toFixed(2));
+  return s+`<span class="fr"><sup>${Math.abs(p)}</sup>⁄<sub>${q}</sub></span>`;
+}
+function numPlain(v){
+  const r=Math.round(v*100)/100; const s=r<0?'−':''; return s+String(Math.abs(r));
+}
+function xTerm(b){
+  if (near(b,1)) return X;
+  if (near(b,-1)) return '−'+X;
+  const [p,q]=toFrac(b); const s=p<0?'−':'';
+  if (q===1) return s+Math.abs(p)+X;
+  if (Math.abs(p)===1) return s+X+'/'+q;
+  return numHTML(b)+X;
+}
+function innerHTML(b,c,deg){
+  let s=xTerm(b);
+  if (!near0(c)) s += (c>0?' + ':' − ')+numHTML(Math.abs(c))+(deg?'°':'');
+  return s;
+}
+const BASES = {
+  quad:{f:x=>x*x, fmt:(i,o)=>o.plain?`${i}<sup>2</sup>`:`(${i})<sup>2</sup>`, key:[0,0], keyName:'vertex'},
+  cube:{f:x=>x*x*x, fmt:(i,o)=>o.plain?`${i}<sup>3</sup>`:`(${i})<sup>3</sup>`, key:[0,0]},
+  exp2:{f:x=>Math.pow(2,x), fmt:i=>`2<sup>${i}</sup>`, wrap:true, key:[0,1]},
+  exp3:{f:x=>Math.pow(3,x), fmt:i=>`3<sup>${i}</sup>`, wrap:true, key:[0,1]},
+  log2:{f:x=>x>0?Math.log2(x):NaN, fmt:(i,o)=>o.simple?`log<sub>2</sub> ${i}`:`log<sub>2</sub>(${i})`, space:true, key:[1,0]},
+  log10:{f:x=>x>0?Math.log10(x):NaN, fmt:(i,o)=>o.simple?`log ${i}`:`log(${i})`, space:true, key:[1,0]},
+  sin:{f:x=>Math.sin(x*DEG), deg:true, fmt:(i,o)=>o.simple?`sin ${i}`:`sin(${i})`, space:true, key:[90,1]},
+  cos:{f:x=>Math.cos(x*DEG), deg:true, fmt:(i,o)=>o.simple?`cos ${i}`:`cos(${i})`, space:true, key:[0,1]},
+  fn:{fmt:i=>`<i>f</i>(${i})`}
+};
+const ID = {a:1,b:1,c:0,d:0};
+function exprHTML(B,s,deg){
+  deg = deg===undefined ? !!B.deg : deg;
+  const o = {plain: near(s.b,1)&&near0(s.c), simple: near0(s.c)&&s.b>0&&isInt(s.b)};
+  const F = B.fmt(innerHTML(s.b,s.c,deg), o);
+  let out;
+  if (near(s.a,1)) out=F;
+  else if (near(s.a,-1)) out='−'+F;
+  else out = numHTML(s.a) + (B.wrap?`(${F})`:(B.space?' ':'')+F);
+  if (!near0(s.d)) out += (s.d>0?' + ':' − ')+numHTML(Math.abs(s.d));
+  return out;
+}
+const M = h=>`<span class="m">${h}</span>`;
+const evalState = (B,s)=>x=>s.a*B.f(s.b*x+s.c)+s.d;
+
+/* ---------- moves ---------- */
+const MOVES = {
+  up:   {grp:'T',ic:'↑',nm:'Up',    ax:'v', ap:(s,k)=>({...s,d:s.d+k})},
+  down: {grp:'T',ic:'↓',nm:'Down',  ax:'v', ap:(s,k)=>({...s,d:s.d-k})},
+  left: {grp:'T',ic:'←',nm:'Left',  ax:'h', ap:(s,k)=>({...s,c:s.c+s.b*k})},
+  right:{grp:'T',ic:'→',nm:'Right', ax:'h', ap:(s,k)=>({...s,c:s.c-s.b*k})},
+  rx:   {grp:'R',ic:'⇅',nm:'x-axis',ax:'v', ap:s=>({...s,a:-s.a,d:-s.d})},
+  ry:   {grp:'R',ic:'⇄',nm:'y-axis',ax:'h', ap:s=>({...s,b:-s.b})},
+  both: {grp:'R',ax:'v', ap:s=>({a:-s.a,b:-s.b,c:s.c,d:-s.d})},
+  vs:   {grp:'S',ic:'↕',nm:'V-stretch', ax:'v', ap:(s,k)=>({...s,a:s.a*k,d:s.d*k})},
+  vc:   {grp:'S',ic:'⤓',nm:'V-compress',ax:'v', ap:(s,k)=>({...s,a:s.a/k,d:s.d/k})},
+  hs:   {grp:'S',ic:'↔',nm:'H-stretch', ax:'h', ap:(s,k)=>({...s,b:s.b/k})},
+  hc:   {grp:'S',ic:'⇥',nm:'H-compress',ax:'h', ap:(s,k)=>({...s,b:s.b*k})}
+};
+const needsK = m=>!['rx','ry','both'].includes(m);
+const applyMove = (s,m,k)=>MOVES[m].ap(s,k);
+const applyAll = (list)=>list.reduce((s,[m,k])=>applyMove(s,m,k),ID);
+const CONF = {up:['down','left','right'],down:['up','right','left'],left:['right','up','down'],right:['left','down','up'],
+  rx:['ry','both'],ry:['rx','both'],vs:['vc','hc','hs'],vc:['vs','hs','hc'],hc:['hs','vs','vc'],hs:['hc','vc','vs']};
+function unitTxt(m,k,deg){ return (deg && MOVES[m].ax==='h') ? `${numHTML(k)}°` : (near(k,1)?'1 unit':`${numHTML(k)} units`); }
+function descHTML(m,k,deg){
+  switch(m){
+    case 'up': return `translated upwards by ${unitTxt(m,k,deg)}`;
+    case 'down': return `translated downwards by ${unitTxt(m,k,deg)}`;
+    case 'left': return `translated leftwards by ${unitTxt(m,k,deg)}`;
+    case 'right': return `translated rightwards by ${unitTxt(m,k,deg)}`;
+    case 'rx': return `reflected about the <i>x</i>-axis`;
+    case 'ry': return `reflected about the <i>y</i>-axis`;
+    case 'both': return `reflected about the <i>x</i>-axis and then the <i>y</i>-axis`;
+    case 'vs': return `vertically stretched by a factor ${numHTML(k)}`;
+    case 'vc': return `vertically compressed by a factor ${numHTML(k)}`;
+    case 'hs': return `horizontally stretched by a factor ${numHTML(k)}`;
+    case 'hc': return `horizontally compressed by a factor ${numHTML(k)}`;
+  }
+}
+function shortName(m,k,deg){
+  const u = (deg&&MOVES[m].ax==='h')?`${k}°`:k;
+  return {up:`Up ${u}`,down:`Down ${u}`,left:`Left ${u}`,right:`Right ${u}`,rx:'Reflect in x-axis',ry:'Reflect in y-axis',
+    vs:`V-stretch ×${k}`,vc:`V-compress ×${k}`,hs:`H-stretch ×${k}`,hc:`H-compress ×${k}`}[m];
+}
+function fnote(m,k,deg){ return exprHTML(BASES.fn, applyMove(ID,m,k), deg); }
+const RULE = {
+  up:   k=>`<b>Outside the function, + moves up.</b> In <i>f</i>(<i>x</i>) + ${k} every <i>y</i>-value increases by ${k}.`,
+  down: k=>`<b>Outside the function, − moves down.</b> In <i>f</i>(<i>x</i>) − ${k} every <i>y</i>-value decreases by ${k}.`,
+  left: k=>`<b>Inside the bracket, + moves LEFT.</b> <i>f</i>(<i>x</i> + ${k}) reaches each value ${k} earlier, so the graph shifts left by ${k}.`,
+  right:k=>`<b>Inside the bracket, − moves RIGHT.</b> <i>f</i>(<i>x</i> − ${k}) reaches each value ${k} later, so the graph shifts right by ${k}.`,
+  rx:   ()=>`<b>−<i>f</i>(<i>x</i>) flips over the <i>x</i>-axis.</b> Every <i>y</i>-value changes sign; <i>x</i> stays put.`,
+  ry:   ()=>`<b><i>f</i>(−<i>x</i>) flips over the <i>y</i>-axis.</b> Every <i>x</i> is replaced by −<i>x</i>; heights stay put.`,
+  both: ()=>`<b>−<i>f</i>(−<i>x</i>) uses both mirrors.</b>`,
+  vs:   k=>`<b>A number multiplying outside stretches vertically.</b> ${k}<i>f</i>(<i>x</i>) multiplies every <i>y</i>-value by ${k}.`,
+  vc:   k=>`<b>Dividing outside compresses vertically.</b> <i>f</i>(<i>x</i>) ÷ ${k} divides every <i>y</i>-value by ${k}.`,
+  hc:   k=>`<b>A number multiplying <i>x</i> inside COMPRESSES horizontally.</b> <i>f</i>(${k}<i>x</i>) reaches each value ${k} times sooner, so the graph is ${k} times narrower.`,
+  hs:   k=>`<b>Dividing <i>x</i> inside STRETCHES horizontally.</b> <i>f</i>(<i>x</i>/${k}) takes ${k} times longer to reach each value, so the graph is ${k} times wider.`
+};
+
+/* ---------- graph equivalence ---------- */
+function sameGraph(f1,f2,view){
+  const [x0,x1]=view.x,[y0,y1]=view.y, span=y1-y0, tol=span*0.006;
+  const inR=v=>v>y0-span*0.1&&v<y1+span*0.1;
+  let n=0;
+  for (let i=0;i<=300;i++){
+    const x=x0+(x1-x0)*(i+0.37)/301;
+    const a=f1(x), b=f2(x); const oa=isFinite(a), ob=isFinite(b);
+    if (!oa&&!ob) continue;
+    if (oa!==ob){ if ((oa&&inR(a))||(ob&&inR(b))) return false; continue; }
+    if (!inR(a)&&!inR(b)) continue;
+    if (Math.abs(a-b)>tol) return false;
+    n++;
+  }
+  return n>8;
+}
+
+/* ---------- plotting ---------- */
+let plotId=0;
+function makePlot(svg, view, opts={}){
+  const W=opts.W||640, H=opts.H||440, P={l:30,r:10,t:10,b:24};
+  const id='clip'+(++plotId);
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const sx=x=>P.l+(x-view.x[0])/(view.x[1]-view.x[0])*(W-P.l-P.r);
+  const sy=y=>P.t+(view.y[1]-y)/(view.y[1]-view.y[0])*(H-P.t-P.b);
+  let g='';
+  const gx=view.gx||1, gy=view.gy||1, lx=view.lx||2, ly=view.ly||2;
+  for (let x=Math.ceil(view.x[0]/gx)*gx; x<=view.x[1]+EPS; x+=gx){
+    const maj = near0((x/lx)-Math.round(x/lx));
+    g+=`<line class="gl${maj?' maj':''}" x1="${sx(x)}" x2="${sx(x)}" y1="${P.t}" y2="${H-P.b}"/>`;
+  }
+  for (let y=Math.ceil(view.y[0]/gy)*gy; y<=view.y[1]+EPS; y+=gy){
+    const maj = near0((y/ly)-Math.round(y/ly));
+    g+=`<line class="gl${maj?' maj':''}" y1="${sy(y)}" y2="${sy(y)}" x1="${P.l}" x2="${W-P.r}"/>`;
+  }
+  g+=`<line class="ax" x1="${P.l}" x2="${W-P.r}" y1="${sy(0)}" y2="${sy(0)}"/><line class="ax" y1="${P.t}" y2="${H-P.b}" x1="${sx(0)}" x2="${sx(0)}"/>`;
+  if (!opts.noLabels){
+    for (let x=Math.ceil(view.x[0]/lx)*lx; x<=view.x[1]+EPS; x+=lx){ if (near0(x)||x>=view.x[1]-EPS||x<=view.x[0]+EPS) continue;
+      g+=`<text class="lbl" x="${sx(x)}" y="${Math.min(H-P.b-4,sy(0)+15)}" text-anchor="middle">${numPlain(x)}${view.deg?'°':''}</text>`; }
+    for (let y=Math.ceil(view.y[0]/ly)*ly; y<=view.y[1]+EPS; y+=ly){ if (near0(y)) continue;
+      g+=`<text class="lbl" x="${sx(0)-6}" y="${sy(y)+4}" text-anchor="end">${numPlain(y)}</text>`; }
+    g+=`<text class="lbl" x="${W-P.r-4}" y="${sy(0)-6}" text-anchor="end" font-style="italic">x</text><text class="lbl" x="${sx(0)+6}" y="${P.t+12}" font-style="italic">y</text>`;
+  }
+  svg.innerHTML=`<defs><clipPath id="${id}"><rect x="${P.l}" y="${P.t}" width="${W-P.l-P.r}" height="${H-P.t-P.b}"/></clipPath></defs>
+    <g>${g}</g><g clip-path="url(#${id})"><path class="c-orig"/><path class="c-target"/><path class="c-cur"/></g><g class="marks" clip-path="url(#${id})"></g>`;
+  const span=view.y[1]-view.y[0];
+  function path(fn){
+    const N=opts.N||520; let d='', pen=false, prev=null;
+    for (let i=0;i<=N;i++){
+      const x=view.x[0]+(view.x[1]-view.x[0])*i/N; const y=fn(x);
+      if (!isFinite(y)){pen=false;prev=null;continue;}
+      if (pen&&prev!==null&&Math.abs(y-prev)>span&&y*prev<0) pen=false;
+      const yc=Math.max(view.y[0]-span,Math.min(view.y[1]+span,y));
+      d+=(pen?'L':'M')+sx(x).toFixed(1)+','+sy(yc).toFixed(1); pen=true; prev=y;
+    }
+    return d;
+  }
+  const el=c=>svg.querySelector('.'+c);
+  return {
+    set(cls,fn){ el(cls).setAttribute('d', fn?path(fn):''); },
+    marks(list){ svg.querySelector('.marks').innerHTML = list.map(p=>{
+      if (!isFinite(p.x)||!isFinite(p.y)) return '';
+      const X_=sx(p.x),Y_=sy(p.y);
+      let s=`<circle class="${p.cls}" cx="${X_}" cy="${Y_}" r="${p.r||6}"/>`;
+      if (p.label){ const right = X_<W*0.72; s+=`<text class="kpl" x="${X_+(right?10:-10)}" y="${Y_-10}" text-anchor="${right?'start':'end'}">${p.label}</text>`; }
+      return s; }).join(''); }
+  };
+}
+
+/* ---------- storage ---------- */
+const STORE='graphshifter.v1';
+let save={stars:{},best:0};
+try{ const raw=localStorage.getItem(STORE); if(raw) save=Object.assign(save,JSON.parse(raw)); }catch(e){}
+const persist=()=>{ try{localStorage.setItem(STORE,JSON.stringify(save));}catch(e){} };
+
+/* ---------- levels ---------- */
+const VIEWS = {
+  quad:{x:[-7,7],y:[-5,9],gx:1,gy:1,lx:2,ly:2},
+  exp2:{x:[-6,6],y:[-5,9],gx:1,gy:1,lx:2,ly:2},
+  log2:{x:[-4,10],y:[-5,5],gx:1,gy:1,lx:2,ly:1},
+  sin:{x:[-360,360],y:[-4,4],gx:45,gy:1,lx:180,ly:1,deg:true}
+};
+const LEVELS = [
+ {title:'Lift off',type:'encode',base:'quad',target:[['up',3]],par:1,groups:['T'],
+  intro:'Move your blue curve onto the yellow highlighter. Each button shows the algebra it will apply.',
+  note:`Adding 3 <b>outside</b> the function, ${M('<i>f</i>(<i>x</i>) + 3')}, moves every point up 3 units.`},
+ {title:'Sideways',type:'encode',base:'quad',target:[['right',2]],par:1,groups:['T'],
+  intro:'The target is off to the side this time. Watch the sign inside the bracket.',
+  note:`Moving right 2 gives ${M('<i>f</i>(<i>x</i> − 2)')}. Inside the bracket the sign works backwards: <b>minus means right</b>.`},
+ {title:'Two steps',type:'encode',base:'quad',target:[['left',3],['down',2]],par:2,groups:['T'],
+  intro:'Two moves are needed. Try to do it in exactly two.',
+  note:`Left 3 and down 2 gives ${M('<i>f</i>(<i>x</i> + 3) − 2')}. With translations only, the order does not matter.`},
+ {title:'Read the code',type:'decode',base:'quad',target:[['left',2],['down',4]],par:2,groups:['T'],
+  intro:'No highlighter now. Read g(x), move your curve to where it belongs, then press Check. The buttons no longer show the algebra.',
+  note:`${M('(<i>x</i> + 2)<sup>2</sup> − 4')}: “+ 2” inside the bracket means left 2, and “− 4” outside means down 4.`},
+ {title:'Mirror, mirror',type:'encode',base:'exp2',target:[['rx']],par:1,groups:['T','R'],
+  intro:'Reflections are unlocked. Which mirror do you need?',
+  note:`${M('−<i>f</i>(<i>x</i>)')} changes the sign of every <i>y</i>-value, so the graph flips over the <i>x</i>-axis.`},
+ {title:'The other mirror',type:'encode',base:'exp2',target:[['ry']],par:1,groups:['T','R'],
+  intro:'Same curve, different mirror.',
+  note:`${M('<i>f</i>(−<i>x</i>)')} replaces every <i>x</i> with −<i>x</i>, so the graph flips over the <i>y</i>-axis.`},
+ {title:'Order matters',type:'decode',base:'log2',target:[['rx'],['up',2]],par:2,groups:['T','R'],
+  intro:'Two moves. Think carefully about which one comes first.',
+  note:`Reflect first, then move up. If you move up first and then reflect, the +2 flips too and you get ${M('−log<sub>2</sub> <i>x</i> − 2')}.`},
+ {title:'Taller waves',type:'encode',base:'sin',target:[['vs',2]],par:1,groups:['T','R','S'],
+  intro:'Stretching and compressing are unlocked. The x-axis is in degrees.',
+  note:`${M('2 sin <i>x</i>')} doubles every <i>y</i>-value: a vertical stretch by a factor 2. The <i>x</i>-intercepts don't move.`},
+ {title:'Squeeze',type:'encode',base:'sin',target:[['hc',2]],par:1,groups:['T','R','S'],
+  intro:'The waves are packed tighter. Which button does that?',
+  note:`${M('sin 2<i>x</i>')} is a horizontal <b>compression</b> by a factor 2. The 2 looks like it should make things bigger, but the graph gets narrower.`},
+ {title:'Decode the wave',type:'decode',base:'sin',target:[['hs',2],['up',1]],par:2,groups:['T','R','S'],
+  intro:'Read the equation, then build it.',
+  note:`${M('<i>x</i>/2')} inside means a horizontal stretch by a factor 2; “+ 1” outside means up 1.`},
+ {title:'Two ways',type:'encode',base:'sin',target:[['ry'],['up',1]],par:2,groups:['T','R','S'],
+  intro:'This one comes from worksheet Q9.',
+  note:`The target is ${M('sin(−<i>x</i>) + 1')}. Because sin(−<i>x</i>) = −sin <i>x</i>, reflecting about the <i>x</i>-axis or about the <i>y</i>-axis gives the same graph here. Both routes count.`},
+ {title:'Full combo',type:'decode',base:'quad',target:[['right',1],['vs',2],['down',3]],par:3,groups:['T','R','S'],
+  intro:'Three moves. Order matters when stretching and translating up or down are mixed.',
+  note:`${M('2(<i>x</i> − 1)<sup>2</sup> − 3')}: right 1, then stretch by 2, then down 3. Moving down before stretching would turn the −3 into −6.`},
+ {title:'Exponential boss',type:'decode',base:'exp2',target:[['left',1],['rx'],['up',3]],par:3,groups:['T','R','S'],
+  intro:'Three moves on an exponential curve.',
+  note:`${M('−2<sup><i>x</i> + 1</sup> + 3')}: left 1, reflect about the <i>x</i>-axis, then up 3.`},
+ {title:'Two roads',type:'encode',base:'log2',target:[['down',2]],par:1,groups:['T','R','S'],factors:[2,3,4],
+  intro:'Final level. Find a one-move solution, then think about whether there is another.',
+  note:`Moving down 2 works, and so does a horizontal stretch by a factor 4: ${M('log<sub>2</sub>(<i>x</i>/4) = log<sub>2</sub> <i>x</i> − 2')}. One graph can have two descriptions, just like worksheet Q17.`}
+];
+
+let L=null, li=0, state=ID, hist=[], fails=0, solved=false, kSel={v:1,h:1,f:2}, plot=null, anim=null, shownState=ID;
+
+function levelShift(Lv){ return BASES[Lv.base].deg ? {v:[1,2,3],h:[90,180]} : {v:[1,2,3,4],h:null}; }
+
+function renderStrip(){
+  $('strip').innerHTML = LEVELS.map((lv,i)=>{
+    const st=save.stars[i]||0;
+    return `<button data-lv="${i}" aria-current="${i===li}" aria-label="Level ${i+1}: ${lv.title}${st?`, ${st} stars`:''}">
+      <span class="n">${i+1}</span><span class="s">${'★'.repeat(st)}</span><span class="t">${lv.type==='encode'?'match':'decode'}</span></button>`;
+  }).join('');
+}
+$('strip').addEventListener('click',e=>{ const b=e.target.closest('button[data-lv]'); if(b) loadLevel(+b.dataset.lv); });
+
+function loadLevel(i){
+  li=i; L=LEVELS[i]; state=ID; shownState=ID; hist=[]; fails=0; solved=false;
+  const sh=levelShift(L); kSel={v:sh.v[0], h:(sh.h||sh.v)[0], f:(L.factors||[2,3])[0]};
+  const B=BASES[L.base];
+  $('lv-no').textContent=`Level ${i+1} / ${LEVELS.length}`;
+  $('lv-title').textContent=L.title;
+  const bd=$('lv-badge'); bd.className='badge '+L.type; bd.textContent = L.type==='encode'?'Match the graph':'Decode the equation';
+  plot=makePlot($('plot'),VIEWS[L.base]);
+  $('plot').classList.remove('win');
+  plot.set('c-orig',B.f);
+  L._target=applyAll(L.target);
+  plot.set('c-target', L.type==='encode'?evalState(B,L._target):null);
+  $('legend').innerHTML = `<span><i class="sw o"></i>original <span class="m">y = ${exprHTML(B,ID)}</span></span><span><i class="sw"></i>your curve</span>` + (L.type==='encode'?`<span><i class="sw t"></i>target</span>`:'');
+  const tgt = exprHTML(B,L._target);
+  $('mission').innerHTML = `<p class="kicker">Mission</p><p>${L.intro}</p>` +
+    (L.type==='encode' ? `<p style="margin:0">Start: <span class="m">y = ${exprHTML(B,ID)}</span>. Par: <b>${L.par}</b> move${L.par>1?'s':''}.</p>`
+     : `<div class="target-eq dec m">g(<i>x</i>) = ${tgt}</div><p style="margin:8px 0 0">Start from <span class="m">y = ${exprHTML(B,ID)}</span>. Par: <b>${L.par}</b> move${L.par>1?'s':''}.</p>`);
+  renderMoves(); renderEq(); renderStrip(); fb(null);
+  $('check').hidden = L.type!=='decode';
+  drawCurrent(ID);
+  const cur=$('strip').querySelector('[aria-current="true"]'); if(cur&&cur.scrollIntoView) cur.scrollIntoView({block:'nearest',inline:'center'});
+}
+
+function renderMoves(){
+  const B=BASES[L.base], deg=!!B.deg, sh=levelShift(L), show=L.type==='encode', facs=L.factors||[2,3];
+  const btn=(m,k)=>`<button class="mbtn" data-mv="${m}"><span class="ic" aria-hidden="true">${MOVES[m].ic}</span><span class="nm">${MOVES[m].nm}</span>${show?`<span class="al m">${fnote(m,k,deg)}</span>`:''}</button>`;
+  const chips=(key,vals,unit)=>vals.map(v=>`<button class="chip" data-k="${key}" data-v="${v}" aria-pressed="${kSel[key]===v}">${v}${unit}</button>`).join('');
+  let h='';
+  if (L.groups.includes('T')){
+    h+=`<div class="grp"><h3>Translate <small>slide the graph</small></h3><div class="btns four">${btn('up',kSel.v)}${btn('down',kSel.v)}${btn('left',kSel.h)}${btn('right',kSel.h)}</div>`;
+    h+= sh.h ? `<div class="picker">Up/down by ${chips('v',sh.v,'')}</div><div class="picker">Left/right by ${chips('h',sh.h,'°')}</div>`
+             : `<div class="picker">Move by ${chips('v',sh.v,'')}</div>`;
+    h+=`</div>`;
+  }
+  if (L.groups.includes('R')) h+=`<div class="grp"><h3>Reflect <small>flip in a mirror line</small></h3><div class="btns">${btn('rx')}${btn('ry')}</div></div>`;
+  if (L.groups.includes('S')) h+=`<div class="grp"><h3>Stretch / compress <small>scale the graph</small></h3><div class="btns four">${btn('vs',kSel.f)}${btn('vc',kSel.f)}${btn('hs',kSel.f)}${btn('hc',kSel.f)}</div><div class="picker">Factor ${chips('f',facs,'')}</div></div>`;
+  $('moves').innerHTML=h;
+}
+$('moves').addEventListener('click',e=>{
+  const c=e.target.closest('.chip');
+  if (c){ const key=c.dataset.k; kSel[key]=+c.dataset.v; if(key==='v'&&!levelShift(L).h) kSel.h=kSel.v; renderMoves(); return; }
+  const b=e.target.closest('.mbtn'); if(!b||solved) return;
+  const m=b.dataset.mv, ax=MOVES[m].ax, grp=MOVES[m].grp;
+  const k = grp==='S'?kSel.f : grp==='R'?undefined : (ax==='v'?kSel.v:kSel.h);
+  doMove(m,k);
+});
+
+function doMove(m,k){
+  hist.push([m,k]); const prev=state; state=applyMove(state,m,k);
+  renderEq(); tween(prev,state); fb(null);
+  if (L.type==='encode' && sameGraph(evalState(BASES[L.base],state),evalState(BASES[L.base],L._target),VIEWS[L.base])){
+    solved=true; $('plot').classList.add('win');
+    setTimeout(()=>openWriteDown(), reduce?50:650);
+  }
+}
+$('undo').onclick=()=>{ if(!hist.length||solved) return; hist.pop(); const prev=state; state=applyAll(hist); renderEq(); tween(prev,state); fb(null); };
+$('reset').onclick=()=>{ if(solved) return; const prev=state; hist=[]; state=ID; renderEq(); tween(prev,state); fb(null); };
+$('check').onclick=checkDecode;
+
+function renderEq(){
+  const B=BASES[L.base], deg=!!B.deg, hide=L.type==='decode';
+  let chain='';
+  if (!hide){
+    let s=ID; const parts=[`<span class="m">${exprHTML(BASES.fn,ID,deg)}</span>`];
+    hist.forEach(([m,k])=>{ s=applyMove(s,m,k); parts.push(`<span class="arr">→</span><span class="m">${exprHTML(BASES.fn,s,deg)}</span>`); });
+    chain = `<div class="chain">${parts.join('')}</div>`;
+  }
+  const list = hist.length ? `<div class="mv-list">${hist.map(([m,k])=>`<span>${shortName(m,k,deg)}</span>`).join('')}</div>` : '';
+  $('eqcard').innerHTML = `<p class="kicker">Your curve</p>` + (hide
+    ? `<div class="eq-now m">y = <span style="color:var(--ink-soft)">? </span></div><p style="margin:4px 0 0;font-size:13px;color:var(--ink-soft)">Its equation stays hidden until you press Check.</p>${list}`
+    : `<div class="eq-now m">y = ${exprHTML(B,state)}</div>${chain}`);
+  $('meter').textContent = `moves ${hist.length} · par ${L.par}`;
+  $('undo').disabled = !hist.length;
+}
+
+function keyLabel(B,s){
+  const [x0,y0]=B.key; const x=(x0-s.c)/s.b, y=s.a*y0+s.d;
+  return {x,y,label:`(${numPlain(x)}${B.deg?'°':''}, ${numPlain(y)})`};
+}
+function drawCurrent(s){
+  const B=BASES[L.base];
+  plot.set('c-cur',evalState(B,s));
+  const kp=keyLabel(B,s), marks=[{x:B.key[0],y:B.key[1],cls:'kp-o',r:4}];
+  if (L.type==='encode' || solved){ const t=keyLabel(B,L._target); marks.push({x:t.x,y:t.y,cls:'kp-t',r:7}); }
+  marks.push({x:kp.x,y:kp.y,cls:'kp',label:kp.label});
+  plot.marks(marks);
+}
+function tween(a,b){
+  if (anim) cancelAnimationFrame(anim);
+  const from={...shownState}, t0=performance.now(), dur=reduce?0:420;
+  const step=now=>{
+    const t=dur?Math.min(1,(now-t0)/dur):1, e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+    shownState={a:from.a+(b.a-from.a)*e,b:from.b+(b.b-from.b)*e,c:from.c+(b.c-from.c)*e,d:from.d+(b.d-from.d)*e};
+    drawCurrent(shownState);
+    if (t<1) anim=requestAnimationFrame(step); else {shownState=b; anim=null;}
+  };
+  anim=requestAnimationFrame(step);
+}
+
+function fb(html,kind){ const el=$('fb'); if(!html){el.hidden=true;el.innerHTML='';return;} el.hidden=false; el.className='fb '+kind; el.innerHTML=html; }
+
+function mutations(list,deg){
+  const out=[];
+  list.forEach(([m,k],i)=>{ (CONF[m]||[]).forEach(alt=>{ if(alt==='both') return; let ka=k;
+    if (deg && MOVES[alt].grp==='T' && MOVES[alt].ax!==MOVES[m].ax) ka = MOVES[alt].ax==='h' ? k*90 : k/90;
+    const c=list.slice(); c[i]=[alt,ka]; out.push({list:c,why:'swap',orig:m,k}); }); });
+  for (let i=0;i+1<list.length;i++){ const c=list.slice(); [c[i],c[i+1]]=[c[i+1],c[i]]; out.push({list:c,why:'order'}); }
+  return out;
+}
+
+function checkDecode(){
+  if (solved) return;
+  const B=BASES[L.base], deg=!!B.deg, view=VIEWS[L.base];
+  const mine=evalState(B,state), tgt=evalState(B,L._target);
+  if (sameGraph(mine,tgt,view)){ solved=true; $('plot').classList.add('win'); plot.set('c-target',tgt); drawCurrent(state); renderEq(); setTimeout(()=>finishLevel(false),reduce?50:600); return; }
+  fails++;
+  let hint='';
+  for (const mu of mutations(L.target,deg)){
+    if (sameGraph(mine,evalState(B,applyAll(mu.list)),view)){
+      hint = mu.why==='order' ? `<p>Right moves, wrong order. Look at what gets multiplied or flipped: anything added outside before a reflection or stretch gets changed too.</p>`
+                              : `<p>Close. One move went the wrong way. ${RULE[mu.orig](deg&&MOVES[mu.orig].ax==='h'&&mu.k!==undefined?mu.k+'°':mu.k)}</p>`;
+      break;
+    }
+  }
+  if (!hint && hist.length===0) hint='<p>Your curve hasn’t moved yet. Use the buttons to build g(x).</p>';
+  if (!hint) hint='<p>Break g(x) into pieces: what happens inside the bracket (horizontal), and what happens outside (vertical)?</p>';
+  const reveal = fails>=2;
+  if (reveal) plot.set('c-target',tgt);
+  fb(`<p><b>Not yet.</b> Your curve is <span class="m">y = ${exprHTML(B,state,deg)}</span>.</p>${hint}${reveal?'<p>Hint: the target is now highlighted in yellow.</p>':''}`,'bad');
+}
+
+function openWriteDown(){
+  const B=BASES[L.base], view=VIEWS[L.base], tgt=evalState(B,L._target);
+  const opts=[{s:L._target,ok:true}];
+  for (const mu of shuffle(mutations(L.target,!!B.deg))){
+    const s=applyAll(mu.list), f=evalState(B,s);
+    if (sameGraph(f,tgt,view)) continue;
+    if (opts.some(o=>exprHTML(B,o.s)===exprHTML(B,s) || sameGraph(evalState(B,o.s),f,view))) continue;
+    opts.push({s}); if (opts.length>=4) break;
+  }
+  if (opts.length<3){ // pad with a vertical/horizontal confusion
+    for (const extra of [[['up',1]],[['down',1]],[['vs',2]],[['left',1]]]){
+      const s=applyAll(L.target.concat(extra)); if(!opts.some(o=>sameGraph(evalState(B,o.s),evalState(B,s),view))) opts.push({s}); if(opts.length>=3) break; }
+  }
+  const sh=shuffle(opts);
+  openSheet(`<p class="kicker">Matched! One more step</p><h2>Write down g(x)</h2>
+    <p style="margin:0">You moved the graph: ${hist.map(([m,k])=>shortName(m,k,!!B.deg)).join(', ')}. Which equation describes the target?</p>
+    <div class="opts">${sh.map((o,i)=>`<button class="opt" data-i="${i}"><span class="k">${i+1}</span><span class="m">g(<i>x</i>) = ${exprHTML(B,o.s)}</span></button>`).join('')}</div>
+    <div id="wd-fb"></div>`);
+  const card=$('sheet-card');
+  card.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    const o=sh[+b.dataset.i];
+    card.querySelectorAll('.opt').forEach(x=>{x.disabled=true; if(sh[+x.dataset.i].ok) x.classList.add('right');});
+    if (!o.ok) b.classList.add('wrong');
+    $('wd-fb').innerHTML = `<div class="fb ${o.ok?'good':'bad'}" style="margin-top:12px"><p><b>${o.ok?'Correct.':'Not quite.'}</b> In function notation the target is <span class="m">${exprHTML(BASES.fn,L._target,!!B.deg)}</span>.</p></div>
+      <div class="actions" style="margin-top:12px"><button class="btn primary" id="wd-go">See result</button></div>`;
+    $('wd-go').onclick=()=>finishLevel(!o.ok);
+    $('wd-go').focus();
+  });
+  card.querySelector('.opt').focus();
+}
+
+function finishLevel(wrongWrite){
+  const extra = hist.length>L.par;
+  let stars=3 - (extra?1:0) - (fails?1:0) - (wrongWrite?1:0); stars=Math.max(1,stars);
+  save.stars[li]=Math.max(save.stars[li]||0,stars); persist(); renderStrip();
+  const B=BASES[L.base];
+  const last = li===LEVELS.length-1;
+  const lines=[];
+  if (extra) lines.push(`You used ${hist.length} moves; par is ${L.par}.`);
+  if (fails) lines.push(`${fails} wrong check${fails>1?'s':''}.`);
+  if (wrongWrite) lines.push('The equation choice was wrong.');
+  openSheet(`<p class="kicker">Level ${li+1} complete</p><h2>${L.title}</h2>
+    <div class="stars" aria-label="${stars} of 3 stars">${'★'.repeat(stars)}<span class="off">${'★'.repeat(3-stars)}</span></div>
+    ${lines.length?`<p style="margin:0 0 8px;color:var(--ink-soft)">${lines.join(' ')}</p>`:''}
+    <div class="fb good"><p><span class="m">g(<i>x</i>) = ${exprHTML(B,L._target)}</span></p><p>${L.note}</p></div>
+    <div class="actions" style="margin-top:14px"><button class="btn" id="r-close">Close</button><button class="btn" id="r-again">Replay</button>
+    ${last?`<button class="btn primary" id="r-rapid">Try Rapid Fire</button>`:`<button class="btn primary" id="r-next">Next level</button>`}</div>`);
+  $('r-again').onclick=()=>{closeSheet(); loadLevel(li);};
+  $('r-close').onclick=closeSheet;
+  if (last) $('r-rapid').onclick=()=>{closeSheet(); setTab('rapid');};
+  else { $('r-next').onclick=()=>{closeSheet(); loadLevel(li+1);}; $('r-next').focus(); }
+}
+
+function openSheet(html){ $('sheet-card').innerHTML=html; $('sheet').hidden=false; }
+function closeSheet(){ $('sheet').hidden=true; }
+document.addEventListener('keydown',e=>{
+  if ($('sheet').hidden) return;
+  const n=+e.key; if (n>=1&&n<=4){ const b=$('sheet-card').querySelector(`.opt[data-i="${n-1}"]`); if(b&&!b.disabled) b.click(); }
+});
+
+/* ---------- tabs ---------- */
+function setTab(t){
+  ['levels','rapid','rules'].forEach(n=>{ $('view-'+n).hidden = n!==t; $('tab-'+n).setAttribute('aria-selected', String(n===t)); });
+  if (t==='rapid' && !rf.running) rfIntro();
+  if (t==='rules' && !$('view-rules').innerHTML) renderRules();
+  if (t!=='rapid' && rf.running) rfPause(true);
+  if (t==='rapid' && rf.running && rf.paused && !rf.feedback) rfPause(false);
+}
+document.querySelector('nav.tabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-tab]'); if(b) setTab(b.dataset.tab); });
+
+/* ---------- rapid fire ---------- */
+const QVIEW = {
+  quad:{x:[-8,8],y:[-8,12],gx:1,gy:2,lx:4,ly:4}, cube:{x:[-5,5],y:[-10,10],gx:1,gy:2,lx:2,ly:5},
+  exp2:{x:[-6,6],y:[-6,12],gx:1,gy:2,lx:2,ly:4}, exp3:{x:[-6,6],y:[-6,12],gx:1,gy:2,lx:2,ly:4},
+  log2:{x:[-6,14],y:[-6,6],gx:1,gy:1,lx:4,ly:2}, log10:{x:[-6,14],y:[-4,4],gx:1,gy:1,lx:4,ly:2},
+  sin:{x:[-360,360],y:[-5,5],gx:45,gy:1,lx:180,ly:2,deg:true}, cos:{x:[-360,360],y:[-5,5],gx:45,gy:1,lx:180,ly:2,deg:true}
+};
+const Q_BASES=Object.keys(QVIEW);
+const CATS={T:'Translation',R:'Reflection',S:'Stretch & compress',TB:'Tables of values',C:'Combined moves'};
+function pickK(m,B){
+  if (!needsK(m)) return undefined;
+  if (MOVES[m].grp==='S') return pick([2,3,4]);
+  if (B.deg && MOVES[m].ax==='h') return pick([30,45,60,90,180]);
+  return pick([1,2,3,4,5,6]);
+}
+function kFor(alt,k,orig,B){
+  if (!needsK(alt)) return undefined;
+  if (MOVES[alt].grp!==MOVES[orig].grp) return pickK(alt,B);
+  if (B.deg && MOVES[alt].ax!==MOVES[orig].ax) return pickK(alt,B);
+  return k;
+}
+const qEquiv=(bk,s1,s2)=>sameGraph(evalState(BASES[bk],s1),evalState(BASES[bk],s2),QVIEW[bk]);
+
+function genDescribe(){
+  for (let t=0;t<40;t++){
+    const bk=pick(Q_BASES), B=BASES[bk], m=pick(Object.keys(CONF)), k=pickK(m,B);
+    const s=applyMove(ID,m,k); if (qEquiv(bk,s,ID)) continue;
+    const opts=[{m,k,ok:true}];
+    for (const alt of CONF[m]){ const ka=kFor(alt,k,m,B), s2=applyMove(ID,alt,ka); if(!qEquiv(bk,s2,s)) opts.push({m:alt,k:ka}); }
+    let guard=0;
+    while (opts.length<4 && guard++<40){ const mm=pick(Object.keys(CONF)), kk=pickK(mm,B); if(opts.some(o=>o.m===mm)) continue; if(qEquiv(bk,applyMove(ID,mm,kk),s)) continue; opts.push({m:mm,k:kk}); }
+    const deg=!!B.deg;
+    return {cat:MOVES[m].grp, prompt:`Under a transformation, <span class="m"><i>f</i>(<i>x</i>)</span> is transformed to <span class="m">g(<i>x</i>)</span>. Describe the geometric meaning.`,
+      fg:[`<i>f</i>(<i>x</i>) = ${exprHTML(B,ID)}`,`g(<i>x</i>) = ${exprHTML(B,s)}`],
+      options:shuffle(opts.map(o=>({html:`The graph is ${descHTML(o.m,o.k,deg)}.`,ok:!!o.ok}))),
+      explain:`<p>g(<i>x</i>) = <span class="m">${fnote(m,k,deg)}</span>. ${RULE[m](k===undefined?'':(deg&&MOVES[m].ax==='h'?k+'°':k))}</p>`,
+      plot:{view:QVIEW[bk],f:B.f,g:evalState(B,s)}};
+  }
+}
+function genBuild(){
+  const combo=Math.random()<0.4;
+  for (let t=0;t<40;t++){
+    const bk=pick(Q_BASES), B=BASES[bk], deg=!!B.deg;
+    let list;
+    if (combo){
+      const pairs=[['up','rx'],['down','rx'],['up','vs'],['down','vs'],['left','hc'],['right','hc'],['left','ry'],['right','ry'],['up','vc']];
+      const p=shuffle(pick(pairs)); list=p.map(m=>[m,pickK(m,B)]);
+      if (qEquiv(bk,applyAll(list),applyAll([list[1],list[0]]))) continue;
+    } else { const m=pick(Object.keys(CONF)); list=[[m,pickK(m,B)]]; }
+    const s=applyAll(list); if (qEquiv(bk,s,ID)) continue;
+    const cands=[];
+    if (list.length>1) cands.push([list[1],list[0]]);
+    list.forEach(([m,k],i)=>CONF[m].forEach(alt=>{ if(alt==='both')return; const c=list.slice(); c[i]=[alt,kFor(alt,k,m,B)]; cands.push(c); }));
+    const opts=[{s,ok:true}];
+    for (const c of shuffle(cands)){ const s2=applyAll(c); if(opts.some(o=>qEquiv(bk,o.s,s2)||exprHTML(B,o.s)===exprHTML(B,s2))) continue; opts.push({s:s2}); if(opts.length>=4) break; }
+    if (opts.length<3) continue;
+    const desc = list.length>1 ? `first ${descHTML(list[0][0],list[0][1],deg)}, and then ${descHTML(list[1][0],list[1][1],deg)}` : descHTML(list[0][0],list[0][1],deg);
+    let ex = list.map(([m,k])=>`<p>${RULE[m](k===undefined?'':(deg&&MOVES[m].ax==='h'?k+'°':k))}</p>`).join('');
+    if (list.length>1) ex = `<p>Apply the moves one at a time: <span class="m">${exprHTML(BASES.fn,ID,deg)} → ${exprHTML(BASES.fn,applyAll([list[0]]),deg)} → ${exprHTML(BASES.fn,s,deg)}</span>. The order matters here.</p>`+ex;
+    return {cat:list.length>1?'C':MOVES[list[0][0]].grp,
+      prompt:`Let <span class="m"><i>f</i>(<i>x</i>) = ${exprHTML(B,ID)}</span>. The graph of <span class="m">y = g(<i>x</i>)</span> is obtained when the graph of <span class="m">y = <i>f</i>(<i>x</i>)</span> is ${desc}. Find g(<i>x</i>).`,
+      options:shuffle(opts.map(o=>({html:`<span class="m">g(<i>x</i>) = ${exprHTML(B,o.s)}</span>`,ok:!!o.ok}))),
+      explain:ex, plot:{view:QVIEW[bk],f:B.f,g:evalState(B,s)}};
+  }
+  return genDescribe();
+}
+function genTable(){
+  const kind=pick(['ry','hc','hs','right','left']);
+  let xs, k, map, desc, gExpr, asks;
+  if (kind==='ry'){ xs=[-8,-4,-2,0,2,4,8]; map=x=>-x; desc='reflecting the graph of y = f(x) about the <i>y</i>-axis'; gExpr='<i>f</i>(−<i>x</i>)'; asks=xs.filter(x=>x!==0); }
+  if (kind==='hc'){ k=pick([2,3]); xs=k===3?[-9,-3,-1,0,1,3,9]:[-8,-4,-2,0,2,4,8]; map=x=>k*x; desc=`horizontally compressing the graph of y = f(x) by a factor ${k}`; gExpr=`<i>f</i>(${k}<i>x</i>)`; asks=xs.filter(x=>x!==0&&xs.includes(k*x)); }
+  if (kind==='hs'){ k=2; xs=[-8,-4,-2,0,2,4,8]; map=x=>x/k; desc='horizontally stretching the graph of y = f(x) by a factor 2'; gExpr='<i>f</i>(<i>x</i>/2)'; asks=xs.filter(x=>x!==0&&xs.includes(x/k)); }
+  if (kind==='right'||kind==='left'){ k=pick([1,2]); xs=[-3,-2,-1,0,1,2,3]; const sg=kind==='right'?-1:1; map=x=>x+sg*k;
+    desc=`translating the graph of y = f(x) ${kind}wards by ${k} unit${k>1?'s':''}`; gExpr=`<i>f</i>(<i>x</i> ${sg<0?'−':'+'} ${k})`; asks=xs.filter(x=>xs.includes(x+k)&&xs.includes(x-k)); }
+  const vals={}; const used=new Set();
+  xs.forEach(x=>{ let v; do{ v=Math.round(Math.random()*60-25); }while(used.has(v)); used.add(v); vals[x]=v; });
+  const x0=pick(asks), src=map(x0), ans=vals[src];
+  const pool=[vals[x0], -ans, vals[-src], vals[x0===0?0:(kind==='ry'?x0:-x0)]];
+  if (kind==='hc') pool.push(vals[x0/k]); if (kind==='hs') pool.push(vals[x0*k]);
+  if (kind==='right'||kind==='left') pool.push(vals[x0+(x0-src)]);
+  const optsN=[ans]; for (const v of pool){ if(v!==undefined&&!optsN.includes(v)) optsN.push(v); if(optsN.length>=4) break; }
+  while (optsN.length<4){ const v=pick(Object.values(vals)); if(!optsN.includes(v)) optsN.push(v); }
+  const table=`<div class="tblwrap"><table class="ft"><tr><th>x</th>${xs.map(x=>`<td>${numPlain(x)}</td>`).join('')}</tr><tr><th>f(x)</th>${xs.map(x=>`<td>${numPlain(vals[x])}</td>`).join('')}</tr></table></div>`;
+  return {cat:'TB', prompt:`The table shows some values of <span class="m"><i>f</i>(<i>x</i>)</span>. The graph of <span class="m">y = g(<i>x</i>)</span> is obtained by ${desc.replace('y = f(x)','<span class="m">y = <i>f</i>(<i>x</i>)</span>')}. Find <span class="m">g(${numPlain(x0)})</span>.`,
+    table, options:shuffle(optsN.map(v=>({html:`<span class="m">${numPlain(v)}</span>`,ok:v===ans}))),
+    explain:`<p>The transformation gives <span class="m">g(<i>x</i>) = ${gExpr}</span>, so <span class="m">g(${numPlain(x0)}) = <i>f</i>(${numPlain(src)}) = ${numPlain(ans)}</span>. Look up <i>x</i> = ${numPlain(src)} in the table, not <i>x</i> = ${numPlain(x0)}.</p>`};
+}
+const pow=(b,e)=>`${b}<sup>${e}</sup>`;
+const WS = [
+ {tag:'Worksheet Q1',cat:'T',fg:['y = log<sub>2</sub>(<i>x</i> + 2) + 3','g(<i>x</i>) = log<sub>2</sub>(<i>x</i> + 2) − 2'],
+  opts:['translated downwards by 5 units','translated upwards by 5 units','translated rightwards by 5 units','translated downwards by 2 units'],
+  ex:'Only the number outside changed: +3 became −2, a change of −5. Outside the function, − means down.',
+  plot:{view:{x:[-4,10],y:[-6,7],lx:2,ly:2},f:x=>Math.log2(x+2)+3,g:x=>Math.log2(x+2)-2}},
+ {tag:'Worksheet Q5',cat:'T',fg:['y = −(<i>x</i> + 4)(<i>x</i> + 11)','g(<i>x</i>) = −(<i>x</i> − 1)(<i>x</i> + 6)'],
+  opts:['translated rightwards by 5 units','translated leftwards by 5 units','translated upwards by 5 units','translated rightwards by 7 units'],
+  ex:'The <i>x</i>-intercepts move from −4 and −11 to 1 and −6. Each one increased by 5, so the graph moved right 5: g(<i>x</i>) = <i>f</i>(<i>x</i> − 5).',
+  plot:{view:{x:[-14,4],y:[-8,16],lx:2,ly:4},f:x=>-(x+4)*(x+11),g:x=>-(x-1)*(x+6)}},
+ {tag:'Worksheet Q6(a)',cat:'T',fg:['<i>f</i>(<i>x</i>) = tan <i>x</i> − 4','g(<i>x</i>) = tan <i>x</i> + 8'],
+  opts:['translated upwards by 12 units','translated upwards by 8 units','translated downwards by 12 units','translated leftwards by 12°'],
+  ex:'g(<i>x</i>) = <i>f</i>(<i>x</i>) + 12, since −4 + 12 = 8. Adding outside moves the graph up.'},
+ {tag:'Worksheet Q6(b)',cat:'T',fg:['<i>f</i>(<i>x</i>) = 5<sup><i>x</i></sup>','g(<i>x</i>) = 25(5<sup><i>x</i></sup>)'],
+  opts:['translated leftwards by 2 units','translated rightwards by 2 units','translated upwards by 25 units','translated upwards by 2 units'],
+  ex:'25(5<sup><i>x</i></sup>) = 5<sup>2</sup> × 5<sup><i>x</i></sup> = 5<sup><i>x</i> + 2</sup> = <i>f</i>(<i>x</i> + 2), a shift left by 2. (It is also a vertical stretch by a factor 25. Same graph, two descriptions.)',
+  plot:{view:{x:[-5,3],y:[-2,12],lx:1,ly:2},f:x=>Math.pow(5,x),g:x=>25*Math.pow(5,x)}},
+ {tag:'Worksheet Q6(c)',cat:'T',fg:['<i>f</i>(<i>x</i>) = <i>x</i><sup>2</sup>','g(<i>x</i>) = <i>x</i><sup>2</sup> − 16<i>x</i> + 64'],
+  opts:['translated rightwards by 8 units','translated leftwards by 8 units','translated upwards by 64 units','translated rightwards by 16 units'],
+  ex:'Factorise: <i>x</i><sup>2</sup> − 16<i>x</i> + 64 = (<i>x</i> − 8)<sup>2</sup> = <i>f</i>(<i>x</i> − 8). Minus inside means right.',
+  plot:{view:{x:[-6,14],y:[-4,30],lx:2,ly:5},f:x=>x*x,g:x=>(x-8)*(x-8)}},
+ {tag:'Worksheet Q8(a)',cat:'R',fg:['<i>f</i>(<i>x</i>) = −2<i>x</i><sup>2</sup> + 3<i>x</i> − 2','g(<i>x</i>) = 2<i>x</i><sup>2</sup> − 3<i>x</i> + 2'],
+  opts:['reflected about the <i>x</i>-axis','reflected about the <i>y</i>-axis','reflected about the <i>x</i>-axis and then the <i>y</i>-axis'],
+  ex:'Every term changed sign, so g(<i>x</i>) = −<i>f</i>(<i>x</i>): reflection about the <i>x</i>-axis.',
+  plot:{view:{x:[-3,4],y:[-8,8],lx:1,ly:2},f:x=>-2*x*x+3*x-2,g:x=>2*x*x-3*x+2}},
+ {tag:'Worksheet Q8(b)',cat:'R',fg:['<i>f</i>(<i>x</i>) = <i>x</i><sup>3</sup> − <i>x</i><sup>2</sup> − 2<i>x</i> + 9','g(<i>x</i>) = −<i>x</i><sup>3</sup> − <i>x</i><sup>2</sup> + 2<i>x</i> + 9'],
+  opts:['reflected about the <i>y</i>-axis','reflected about the <i>x</i>-axis','reflected about the <i>x</i>-axis and then the <i>y</i>-axis'],
+  ex:'Only the odd powers of <i>x</i> changed sign. That is what replacing <i>x</i> with −<i>x</i> does, so g(<i>x</i>) = <i>f</i>(−<i>x</i>).',
+  plot:{view:{x:[-4,4],y:[-4,20],lx:1,ly:4},f:x=>x**3-x*x-2*x+9,g:x=>-(x**3)-x*x+2*x+9}},
+ {tag:'Worksheet Q9',cat:'R',fg:['y = sin(−<i>x</i>) + 1','g(<i>x</i>) = sin <i>x</i> + 1'],
+  opts:['reflected about the <i>y</i>-axis','reflected about the <i>x</i>-axis','translated upwards by 1 unit'],
+  ex:'Replacing <i>x</i> with −<i>x</i> in sin(−<i>x</i>) + 1 gives sin <i>x</i> + 1, so it is a reflection about the <i>y</i>-axis. (Reflecting about the line <i>y</i> = 1 also works here.)',
+  plot:{view:{x:[-360,360],y:[-2,3],lx:180,ly:1,gx:45,deg:true},f:x=>Math.sin(-x*DEG)+1,g:x=>Math.sin(x*DEG)+1}},
+ {tag:'Worksheet Q12(a)',cat:'S',fg:['<i>f</i>(<i>x</i>) = −3 log <i>x</i>','g(<i>x</i>) = −log <i>x</i>'],
+  opts:['vertically compressed by a factor 3','vertically stretched by a factor 3','horizontally compressed by a factor 3','reflected about the <i>x</i>-axis'],
+  ex:'g(<i>x</i>) = <sup>1</sup>⁄<sub>3</sub> <i>f</i>(<i>x</i>). Dividing every <i>y</i>-value by 3 is a vertical compression by a factor 3.',
+  plot:{view:{x:[-1,10],y:[-4,4],lx:2,ly:1},f:x=>x>0?-3*Math.log10(x):NaN,g:x=>x>0?-Math.log10(x):NaN}},
+ {tag:'Worksheet Q12(b)',cat:'S',fg:['<i>f</i>(<i>x</i>) = 2<sup>1.5<i>x</i></sup>','g(<i>x</i>) = 2<sup>3<i>x</i></sup>'],
+  opts:['horizontally compressed by a factor 2','horizontally stretched by a factor 2','horizontally compressed by a factor 1.5','vertically stretched by a factor 2'],
+  ex:'2<sup>3<i>x</i></sup> = 2<sup>1.5(2<i>x</i>)</sup> = <i>f</i>(2<i>x</i>). A 2 multiplying <i>x</i> inside compresses horizontally by a factor 2.',
+  plot:{view:{x:[-3,3],y:[-1,10],lx:1,ly:2},f:x=>Math.pow(2,1.5*x),g:x=>Math.pow(2,3*x)}},
+ {tag:'Worksheet Q13',cat:'S',fg:['<i>f</i>(<i>x</i>) = log<sub>5</sub> <i>x</i>','g(<i>x</i>) = <span class="fr"><sup>1</sup>⁄<sub>5</sub></span> log<sub>5</sub> <i>x</i>'],
+  opts:['vertically compressed by a factor 5','vertically stretched by a factor 5','horizontally compressed by a factor 5','horizontally stretched by a factor 5'],
+  ex:'g(<i>x</i>) = <sup>1</sup>⁄<sub>5</sub> <i>f</i>(<i>x</i>): every <i>y</i>-value is divided by 5, a vertical compression by a factor 5.'},
+ {tag:'Worksheet Q14',cat:'S',fg:['<i>f</i>(<i>x</i>) = cos 2<i>x</i>','g(<i>x</i>) = cos(<i>x</i>/3)'],
+  opts:['horizontally stretched by a factor 6','horizontally compressed by a factor 6','horizontally stretched by a factor 3','vertically compressed by a factor 6'],
+  ex:'cos(<i>x</i>/3) = cos(2 · <i>x</i>/6) = <i>f</i>(<i>x</i>/6). Dividing <i>x</i> by 6 inside stretches horizontally by a factor 6.',
+  plot:{view:{x:[-720,720],y:[-2,2],lx:360,ly:1,gx:90,deg:true},f:x=>Math.cos(2*x*DEG),g:x=>Math.cos(x/3*DEG)}},
+ {tag:'Worksheet Q10',cat:'C',build:true,prompt:'The graph of <span class="m">y = 7<sup>−<i>x</i></sup> − 9</span> is reflected about the <i>y</i>-axis and then reflected about the <i>x</i>-axis. Write down the function after the two transformations.',
+  opts:['y = 9 − 7<sup><i>x</i></sup>','y = 7<sup><i>x</i></sup> − 9','y = 9 − 7<sup>−<i>x</i></sup>','y = −7<sup><i>x</i></sup> − 9'],
+  ex:'About the <i>y</i>-axis: replace <i>x</i> with −<i>x</i> → 7<sup><i>x</i></sup> − 9. About the <i>x</i>-axis: negate everything → −7<sup><i>x</i></sup> + 9 = 9 − 7<sup><i>x</i></sup>.'},
+ {tag:'Worksheet Q17 (Try More)',cat:'C',fg:['<i>f</i>(<i>x</i>) = log<sub>4</sub> <i>x</i>','g(<i>x</i>) = 5 + log<sub>4</sub>(<i>x</i>/8)'],
+  opts:['translated upwards by <span class="fr"><sup>7</sup>⁄<sub>2</sub></span> units','translated upwards by 5 units','translated rightwards by 8 units','translated upwards by <span class="fr"><sup>13</sup>⁄<sub>2</sub></span> units'],
+  ex:'log<sub>4</sub>(<i>x</i>/8) = log<sub>4</sub> <i>x</i> − log<sub>4</sub> 8 = log<sub>4</sub> <i>x</i> − <sup>3</sup>⁄<sub>2</sub>. So g(<i>x</i>) = log<sub>4</sub> <i>x</i> + <sup>7</sup>⁄<sub>2</sub>: a shift up by <sup>7</sup>⁄<sub>2</sub>.'},
+ {tag:'Worksheet Q7',cat:'TB',table:{xs:[-10,-6,0,6,10],ys:[11,-9,-9,27,71]},prompt:'The graph of <span class="m">y = g(<i>x</i>)</span> is obtained by reflecting the graph of <span class="m">y = <i>f</i>(<i>x</i>)</span> about the <i>y</i>-axis. Find <span class="m">g(−6)</span>.',
+  opts:['27','−9','9','−27'],ex:'g(<i>x</i>) = <i>f</i>(−<i>x</i>), so g(−6) = <i>f</i>(6) = 27.'},
+ {tag:'Worksheet Q11',cat:'TB',table:{xs:[-9,-3,-1,0,1,3,9],ys:[51,-9,-13,-12,-9,3,87]},prompt:'The graph of <span class="m">y = g(<i>x</i>)</span> is obtained by horizontally compressing the graph of <span class="m">y = <i>f</i>(<i>x</i>)</span> by a factor 3. Find <span class="m">g(1)</span>.',
+  opts:['3','−9','−13','87'],ex:'g(<i>x</i>) = <i>f</i>(3<i>x</i>), so g(1) = <i>f</i>(3) = 3.'}
+];
+function wsQuestion(w){
+  const opts=w.opts.map((h,i)=>({html: w.build||w.table ? `<span class="m">${h}</span>` : `The graph is ${h}.`, ok:i===0}));
+  let table='';
+  if (w.table) table=`<div class="tblwrap"><table class="ft"><tr><th>x</th>${w.table.xs.map(x=>`<td>${numPlain(x)}</td>`).join('')}</tr><tr><th>f(x)</th>${w.table.ys.map(y=>`<td>${numPlain(y)}</td>`).join('')}</tr></table></div>`;
+  return {cat:w.cat, tag:w.tag, ws:true,
+    prompt: w.prompt || `Under a transformation, the first function below is transformed to g(<i>x</i>). Describe the geometric meaning.`,
+    fg:w.fg, table, options:shuffle(opts), explain:`<p>${w.ex}</p>`, plot:w.plot};
+}
+
+const rf={running:false,paused:false,feedback:false,score:0,streak:0,left:90,last:0,q:null,stats:{},wsQueue:[],misses:[],answered:0,timer:null};
+function rfIntro(){
+  $('rf').innerHTML=`<div class="card rf-hero">
+    <p class="kicker">Rapid Fire · 90 seconds</p>
+    <h2>How many transformations can you read before time runs out?</h2>
+    <ul>
+      <li>Describe a transformation from its equation, build g(<i>x</i>) from a description, or use a table of values.</li>
+      <li>Correct answers in a row build a streak multiplier, up to ×2.</li>
+      <li>Questions marked <b>Worksheet</b> come from the original worksheet and are worth +50.</li>
+      <li>Miss one and the clock pauses while you read why.</li>
+    </ul>
+    <div class="actions"><button class="btn primary" id="rf-start">Start</button><span class="meter">Best score: ${save.best||0}</span></div>
+  </div>`;
+  $('rf-start').onclick=rfStart;
+}
+function rfStart(){
+  Object.assign(rf,{running:true,paused:false,feedback:false,score:0,streak:0,left:90,last:performance.now(),stats:{},misses:[],answered:0,wsQueue:shuffle(WS)});
+  rf.recent=[];
+  rfNext();
+  clearInterval(rf.timer); rf.timer=setInterval(rfTick,200);
+}
+function rfTick(){
+  const now=performance.now();
+  if (!rf.paused) rf.left-= (now-rf.last)/1000;
+  rf.last=now;
+  const t=$('rf-time'), b=$('rf-bar');
+  if (t) t.textContent=Math.max(0,Math.ceil(rf.left))+'s';
+  if (b) b.style.width=Math.max(0,rf.left/90*100)+'%';
+  if (rf.left<=0) rfEnd();
+}
+function rfPause(p){ rf.paused=p; rf.last=performance.now(); }
+function rfGen(){
+  const r=Math.random();
+  if (r<0.28 && rf.wsQueue.length) return wsQuestion(rf.wsQueue.pop());
+  if (r<0.55) return genDescribe();
+  if (r<0.82) return genBuild();
+  return genTable();
+}
+function mult(){ return 1+Math.min(rf.streak,4)*0.25; }
+function rfNext(){
+  rf.feedback=false; rfPause(false);
+  const q=rfGen(); rf.q=q;
+  $('rf').innerHTML=`<div class="hud"><span class="score" id="rf-score">${rf.score}</span><span class="streak">streak ${rf.streak} · ×${mult()}</span><span class="time" id="rf-time">${Math.ceil(rf.left)}s</span></div>
+    <div class="timebar"><div id="rf-bar" style="width:${rf.left/90*100}%"></div></div>
+    <div class="card">
+      <span class="q-tag${q.ws?' ws':''}">${q.ws?q.tag:CATS[q.cat]}</span>
+      <p class="q-prompt">${q.prompt}</p>
+      ${q.fg?`<div class="fg">${q.fg.map(s=>`<span class="m">${s}</span>`).join('')}</div>`:''}
+      ${q.table||''}
+      <div class="opts">${q.options.map((o,i)=>`<button class="opt" data-i="${i}"><span class="k">${i+1}</span><span>${o.html}</span></button>`).join('')}</div>
+      <div id="rf-fb"></div>
+    </div>`;
+  $('rf').querySelectorAll('.opt').forEach(b=>b.onclick=()=>rfAnswer(+b.dataset.i));
+}
+function rfAnswer(i){
+  if (rf.feedback||!rf.running) return;
+  const q=rf.q, o=q.options[i];
+  const st=rf.stats[q.cat]||(rf.stats[q.cat]={ok:0,n:0}); st.n++; rf.answered++;
+  const btns=$('rf').querySelectorAll('.opt');
+  btns.forEach(b=>{ b.disabled=true; if(q.options[+b.dataset.i].ok) b.classList.add('right'); });
+  if (o.ok){
+    st.ok++; rf.score+=Math.round(100*mult())+(q.ws?50:0); rf.streak++;
+    $('rf-score').textContent=rf.score;
+    rf.feedback=true;
+    setTimeout(()=>{ if(rf.running) rfNext(); }, reduce?150:550);
+  } else {
+    btns[i].classList.add('wrong'); rf.streak=0; rf.feedback=true; rfPause(true);
+    rf.misses.push(q);
+    $('rf-fb').innerHTML=`<div class="fb bad explain">${q.explain}${q.plot?'<svg class="plot mini" id="rf-mini"></svg><div class="legend"><span><i class="sw o"></i>before</span><span><i class="sw"></i>after</span></div>':''}
+      <div class="actions" style="margin-top:8px"><button class="btn primary" id="rf-go">Next question</button></div></div>`;
+    if (q.plot){ const p=makePlot($('rf-mini'),{gx:1,gy:1,...q.plot.view},{W:480,H:300,N:360}); p.set('c-orig',q.plot.f); p.set('c-cur',q.plot.g); }
+    $('rf-go').onclick=()=>{ if(rf.left<=0) rfEnd(); else rfNext(); };
+    $('rf-go').focus();
+  }
+}
+function rfEnd(){
+  if (!rf.running) return;
+  rf.running=false; clearInterval(rf.timer);
+  const newBest = rf.score>(save.best||0); if (newBest){ save.best=rf.score; persist(); }
+  const cats=Object.keys(rf.stats);
+  let weakest=null; cats.forEach(c=>{ const s=rf.stats[c]; const r=s.ok/s.n; if(s.n&&(weakest===null||r<weakest.r)) weakest={c,r}; });
+  const tip = weakest && weakest.r<1 ? `<div class="fb bad" style="margin-top:6px"><p><b>Work on: ${CATS[weakest.c]}.</b> ${({T:'Remember: inside the bracket the sign works backwards (x − k moves right).',R:'−f(x) flips over the x-axis; f(−x) flips over the y-axis.',S:'f(kx) with k > 1 compresses horizontally; kf(x) stretches vertically.',TB:'For g(x) = f(kx) or f(−x), find which x you need to look up in the f table first.',C:'Do the moves one at a time and track what happens to numbers outside the function.'})[weakest.c]}</p></div>` : `<div class="fb good"><p><b>Perfect accuracy.</b> Try Levels 12–14 or go for a higher score.</p></div>`;
+  $('rf').innerHTML=`<div class="card">
+    <p class="kicker">Time’s up</p>
+    <div class="hud"><span class="score">${rf.score}</span><span class="streak">${newBest?'New best!':'Best '+save.best}</span></div>
+    <p style="margin:0">${rf.answered} answered.</p>
+    <div class="end-grid">${cats.map(c=>{const s=rf.stats[c];return `<div class="cat">${CATS[c]} <b>${s.ok}/${s.n}</b><div class="bar"><div style="width:${s.ok/s.n*100}%"></div></div></div>`;}).join('')}</div>
+    ${tip}
+    <div class="actions" style="margin-top:14px"><button class="btn primary" id="rf-again">Play again</button><button class="btn" id="rf-rules">Open the rulebook</button></div>
+  </div>`;
+  $('rf-again').onclick=rfStart; $('rf-rules').onclick=()=>setTab('rules');
+}
+document.addEventListener('keydown',e=>{
+  if ($('view-rapid').hidden||!rf.running||rf.feedback) return;
+  const n=+e.key; if (n>=1&&n<=4){ const b=$('rf').querySelector(`.opt[data-i="${n-1}"]`); if(b) b.click(); }
+});
+
+/* ---------- rulebook ---------- */
+function renderRules(){
+  const demo=x=>2.4*Math.exp(-Math.pow(x-1.2,2)/1.1)+0.25*x; // an asymmetric bump so each move is visible
+  const view={x:[-5,5],y:[-4,6],gx:1,gy:1,lx:5,ly:10};
+  const R=[
+    ['T','Translate upwards by k units','up',2],['T','Translate downwards by k units','down',2],
+    ['T','Translate leftwards by k units','left',2],['T','Translate rightwards by k units','right',2],
+    ['R','Reflect about the x-axis','rx'],['R','Reflect about the y-axis','ry'],
+    ['S','Vertically stretch by a factor k','vs',2],['S','Vertically compress by a factor k','vc',2],
+    ['S','Horizontally compress by a factor k','hc',2],['S','Horizontally stretch by a factor k','hs',2]];
+  const forms={up:'y = <i>f</i>(<i>x</i>) + <i>k</i>',down:'y = <i>f</i>(<i>x</i>) − <i>k</i>',left:'y = <i>f</i>(<i>x</i> + <i>k</i>)',right:'y = <i>f</i>(<i>x</i> − <i>k</i>)',
+    rx:'y = −<i>f</i>(<i>x</i>)',ry:'y = <i>f</i>(−<i>x</i>)',vs:'y = <i>k</i><i>f</i>(<i>x</i>)',vc:'y = (1/<i>k</i>) <i>f</i>(<i>x</i>)',hc:'y = <i>f</i>(<i>kx</i>)',hs:'y = <i>f</i>(<i>x</i>/<i>k</i>)'};
+  const notes={up:'every point rises k',down:'every point falls k',left:'plus inside the bracket moves left',right:'minus inside the bracket moves right',
+    rx:'y-values change sign',ry:'x-values change sign',vs:'k > 1; heights multiplied by k',vc:'k > 1; heights divided by k',hc:'k > 1; the graph gets narrower',hs:'k > 1; the graph gets wider'};
+  const groups={T:'Translation',R:'Reflection',S:'Stretching and compressing'};
+  let html=`<p class="kicker">Rulebook</p><h2>Transformations of y = f(x)</h2>
+    <p>Each card shows the original graph (dashed) and the result with <i>k</i> = 2. The dots mark where the peak goes.</p>
+    <div class="traps">
+      <div class="trap"><b>Outside acts on y, as you'd expect</b>Numbers added or multiplied outside <span class="m"><i>f</i>( )</span> change heights in the obvious direction.</div>
+      <div class="trap"><b>Inside acts on x, backwards</b><span class="m"><i>f</i>(<i>x</i> − 2)</span> moves right and <span class="m"><i>f</i>(2<i>x</i>)</span> compresses. Inside the bracket, everything works the opposite way.</div>
+      <div class="trap"><b>Order can matter</b>Reflect or stretch before translating up or down, unless you want the shift flipped or scaled too.</div>
+    </div>`;
+  Object.keys(groups).forEach(gk=>{
+    html+=`<div class="rgroup"><h3>${groups[gk]}</h3><div class="rcards">`;
+    R.filter(r=>r[0]===gk).forEach(([,t,m,k],i)=>{
+      html+=`<div class="rcard"><div class="rt">${t}</div><div class="rform m">${forms[m]}</div><svg class="plot" data-rule="${m}" data-k="${k||''}" aria-label="${t}"></svg><div class="rn">${notes[m]}</div></div>`;
+    });
+    html+=`</div></div>`;
+  });
+  html+=`<div class="actions" style="margin-top:20px"><button class="btn primary" id="rules-play">Back to the levels</button></div>`;
+  $('view-rules').innerHTML=html;
+  $('view-rules').querySelectorAll('svg[data-rule]').forEach(svg=>{
+    const m=svg.dataset.rule, k=+svg.dataset.k||undefined, s=applyMove(ID,m,k);
+    const p=makePlot(svg,view,{W:300,H:190,noLabels:true,N:240});
+    const B={f:demo,key:[1.2,demo(1.2)]};
+    p.set('c-orig',demo); p.set('c-cur',evalState(B,s));
+    const kp=keyLabel(B,s);
+    p.marks([{x:B.key[0],y:B.key[1],cls:'kp-o',r:4},{x:kp.x,y:kp.y,cls:'kp',r:5}]);
+  });
+  $('rules-play').onclick=()=>setTab('levels');
+}
+
+/* ---------- boot ---------- */
+let start=0; for (let i=0;i<LEVELS.length;i++){ if(!save.stars[i]){start=i;break;} if(i===LEVELS.length-1) start=0; }
+loadLevel(start);
+const h=(location.hash||'').slice(1); if (['rapid','rules','levels'].includes(h)) setTab(h);
+})();
+</script>
+
+</body></html>
