@@ -30,7 +30,7 @@
                 Explore how the parameters \(a\), \(b\), \(h\), and \(k\) affect the graph of a function in the form:
             </p>
             <div class="text-xl text-indigo-900 my-4 bg-slate-200 inline-block px-6 py-3 rounded-lg shadow-inner">
-                $$ y = a \cdot f(b(x - h)) + k $$
+                $$ y = a \cdot f(b(x + h)) + k $$
             </div>
         </header>
 
@@ -60,8 +60,9 @@
                             <table class="w-full text-sm text-left text-slate-600 bg-white">
                                 <thead class="text-xs text-slate-700 bg-slate-50 border-b border-slate-200">
                                     <tr>
-                                        <th scope="col" class="px-3 py-2 border-r border-slate-200">Original \((x, y)\)</th>
-                                        <th scope="col" class="px-3 py-2">Transformed \((x', y')\)</th>
+                                        <th scope="col" class="px-3 py-2 border-r border-slate-200 text-center">Original \((x, y)\)</th>
+                                        <th scope="col" class="px-3 py-2 border-r border-slate-200 text-center">Mapping Process</th>
+                                        <th scope="col" class="px-3 py-2 text-center">Transformed \((x', y')\)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="refPointsTableBody">
@@ -246,8 +247,8 @@
                 labels.push(x);
                 originalData.push({ x: x, y: baseFunc(x) });
                 
-                // y = a * f(b(x - h)) + k
-                const innerX = actualB * (x - params.h);
+                // y = a * f(b(x + h)) + k
+                const innerX = actualB * (x + params.h);
                 let y = actualA * baseFunc(innerX) + params.k;
                 
                 transformedData.push({ x: x, y: y });
@@ -262,7 +263,7 @@
                 originalScatter.push({ x: refX, y: y0 });
 
                 if (actualB !== 0) {
-                    const newX = (refX / actualB) + params.h;
+                    const newX = (refX / actualB) - params.h;
                     const newY = actualA * y0 + params.k;
                     transformedScatter.push({ x: newX, y: newY });
                 }
@@ -284,7 +285,7 @@
             if (typeof katex === 'undefined') return; // Wait for KaTeX to load
 
             // Format components carefully to avoid awkward math notation like "+ -3"
-            const hStr = params.h < 0 ? `+ ${Math.abs(params.h)}` : (params.h > 0 ? `- ${params.h}` : '');
+            const hStr = params.h < 0 ? `- ${Math.abs(params.h)}` : (params.h > 0 ? `+ ${params.h}` : '');
             const innerX = params.h === 0 ? 'x' : `(x ${hStr})`;
             
             const actualA = (params.reflectX ? -1 : 1) * params.a;
@@ -326,21 +327,60 @@
             refPointsX.forEach(refX => {
                 const y0 = baseFunc(refX);
                 let transStr = 'Undefined';
+                let processStr = 'Undefined';
                 
                 if (actualB !== 0) {
-                    const newX = (refX / actualB) + params.h;
+                    const newX = (refX / actualB) - params.h;
                     const newY = actualA * y0 + params.k;
                     transStr = `(${formatNum(newX)}, ${formatNum(newY)})`;
+
+                    // Build mapping process string for KaTeX
+                    let xProc = '';
+                    if (actualB === 1) {
+                        xProc = formatNum(refX);
+                    } else if (actualB === -1) {
+                        xProc = `-${refX < 0 ? `(${formatNum(refX)})` : formatNum(refX)}`;
+                    } else {
+                        xProc = `\\frac{${formatNum(refX)}}{${formatNum(actualB)}}`;
+                    }
+
+                    if (params.h > 0) xProc += ` - ${formatNum(params.h)}`;
+                    else if (params.h < 0) xProc += ` + ${formatNum(Math.abs(params.h))}`;
+
+                    let yProc = '';
+                    if (actualA === 1) {
+                        yProc = formatNum(y0);
+                    } else if (actualA === -1) {
+                        yProc = `-${y0 < 0 ? `(${formatNum(y0)})` : formatNum(y0)}`;
+                    } else {
+                        yProc = `${formatNum(actualA)}(${formatNum(y0)})`;
+                    }
+
+                    if (params.k > 0) yProc += ` + ${formatNum(params.k)}`;
+                    else if (params.k < 0) yProc += ` - ${formatNum(Math.abs(params.k))}`;
+
+                    processStr = `\\left( ${xProc}, \\; ${yProc} \\right)`;
                 }
 
                 const tr = document.createElement('tr');
                 tr.className = "border-b border-slate-100 hover:bg-slate-50";
                 tr.innerHTML = `
-                    <td class="px-3 py-2 font-mono text-slate-700 border-r border-slate-200">(${formatNum(refX)}, ${formatNum(y0)})</td>
-                    <td class="px-3 py-2 font-mono text-fuchsia-700 font-medium">${transStr}</td>
+                    <td class="px-3 py-3 font-mono text-slate-700 border-r border-slate-200 text-center">(${formatNum(refX)}, ${formatNum(y0)})</td>
+                    <td class="px-3 py-3 text-slate-600 border-r border-slate-200 text-center">\\( ${processStr} \\)</td>
+                    <td class="px-3 py-3 font-mono text-fuchsia-700 font-medium text-center">${transStr}</td>
                 `;
                 tbody.appendChild(tr);
             });
+
+            // Re-render KaTeX math inside the newly generated table body
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(tbody, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '\\(', right: '\\)', display: false}
+                    ]
+                });
+            }
         }
 
         // Generate transformation summary text based on parameters
@@ -352,10 +392,10 @@
 
             // 1. Horizontal Translations (h)
             if (params.h > 0) {
-                list.innerHTML += `<li>Rightward translation of <b>${params.h}</b> units</li>`;
+                list.innerHTML += `<li>Leftward translation of <b>${params.h}</b> units</li>`;
                 hasTransformations = true;
             } else if (params.h < 0) {
-                list.innerHTML += `<li>Leftward translation of <b>${Math.abs(params.h)}</b> units</li>`;
+                list.innerHTML += `<li>Rightward translation of <b>${Math.abs(params.h)}</b> units</li>`;
                 hasTransformations = true;
             }
 
